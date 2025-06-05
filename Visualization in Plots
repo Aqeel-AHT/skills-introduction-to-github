@@ -1,0 +1,86 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+def create_visualization(data, plot_type='line', x=None, y=None, title='', figsize=(10, 6)):
+    """
+    Create different types of visualizations based on the input data.
+    
+    Parameters:
+    -----------
+    data : pandas.DataFrame or numpy.array
+        The dataset to visualize
+    plot_type : str
+        Type of plot ('line', 'bar', 'scatter', 'histogram', 'boxplot')
+    x : str
+        Column name for x-axis (required for most plot types)
+    y : str
+        Column name for y-axis (required for most plot types)
+    title : str
+        Title of the plot
+    figsize : tuple
+        Size of the figure (width, height)
+    
+    Returns:
+    --------
+    matplotlib.figure.Figure
+        The created visualization
+    """
+    plt.figure(figsize=figsize)
+    
+    if plot_type == 'line':
+        if isinstance(data, pd.DataFrame):
+            plt.plot(data[x], data[y])
+        else:
+            plt.plot(data)
+            
+    elif plot_type == 'bar':
+        if isinstance(data, pd.DataFrame):
+            plt.bar(data[x], data[y])
+        else:
+            plt.bar(range(len(data)), data)
+            
+    elif plot_type == 'scatter':
+        if isinstance(data, pd.DataFrame):
+            plt.scatter(data[x], data[y])
+        else:
+            raise ValueError("Scatter plot requires pandas DataFrame with x and y columns")
+            
+    elif plot_type == 'histogram':
+        if isinstance(data, pd.DataFrame):
+            plt.hist(data[x])
+        else:
+            plt.hist(data)
+            
+    elif plot_type == 'boxplot':
+        if isinstance(data, pd.DataFrame):
+            sns.boxplot(x=x, y=y, data=data)
+        else:
+            sns.boxplot(data)
+    
+    plt.title(title)
+    if x:
+        plt.xlabel(x)
+    if y:
+        plt.ylabel(y)
+    plt.grid(True)
+    
+    return plt.gcf()
+
+# Example usage:
+if __name__ == "__main__":
+    # Create sample data
+    sample_data = pd.DataFrame({
+        'x': range(10),
+        'y': [i**2 for i in range(10)]
+    })
+    
+    # Create different types of plots
+    create_visualization(sample_data, 'line', 'x', 'y', 'Line Plot')
+    plt.show()
+    
+    create_visualization(sample_data, 'scatter', 'x', 'y', 'Scatter Plot')
+    plt.show()
+    
+    create_visualization(sample_data['y'], 'histogram', title='Histogram')
+    plt.show()
