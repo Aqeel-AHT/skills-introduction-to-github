@@ -1,0 +1,201 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from typing import Dict
+
+class ShoppingCart:
+    def __init__(self):
+        self.items = {}  # Dictionary to store items and their quantities
+        self.prices = {
+            "laptop": 999.99,
+            "phone": 499.99,
+            "headphones": 99.99,
+            "tablet": 299.99,
+            "smartwatch": 199.99
+        }  # Sample product catalog with prices
+        self.discount_rate = 0.10  # 10% discount
+
+    def calculate_item_discount(self, item, quantity):
+        # Apply 10% discount if quantity is 2 or more
+        if quantity >= 2:
+            return self.prices[item] * quantity * self.discount_rate
+        return 0
+
+    def calculate_total_discount(self, subtotal):
+        # Apply 10% discount if total is above $999
+        if subtotal > 999:
+            return subtotal * self.discount_rate
+        return 0
+
+    def add_item(self, item_name, quantity=1):
+        item_name = item_name.lower()
+        if item_name not in self.prices:
+            return f"Sorry, {item_name} is not available in our store."
+        
+        if item_name in self.items:
+            self.items[item_name] += quantity
+        else:
+            self.items[item_name] = quantity
+        return f"{quantity} {item_name}(s) added to cart."
+
+    def remove_item(self, item_name, quantity=1):
+        item_name = item_name.lower()
+        if item_name not in self.items:
+            return f"Error: {item_name} not in cart."
+        
+        if self.items[item_name] <= quantity:
+            del self.items[item_name]
+        else:
+            self.items[item_name] -= quantity
+        return f"{quantity} {item_name}(s) removed from cart."
+
+    def view_cart(self):
+        if not self.items:
+            return "Your cart is empty."
+        
+        cart_content = "\n=== Your Shopping Cart ===\n"
+        subtotal = 0
+        total_item_discounts = 0
+
+        for item, quantity in self.items.items():
+            price = self.prices[item]
+            item_total = price * quantity
+            item_discount = self.calculate_item_discount(item, quantity)
+            total_item_discounts += item_discount
+            subtotal += item_total
+
+            cart_content += f"{item.title()}: {quantity} x ${price:.2f} = ${item_total:.2f}\n"
+            if item_discount > 0:
+                cart_content += f"Quantity Discount (10%): -${item_discount:.2f}\n"
+
+        cart_content += f"\nSubtotal: ${subtotal:.2f}"
+        
+        # Calculate total discount for orders above $999
+        total_discount = self.calculate_total_discount(subtotal)
+        final_total = subtotal - total_item_discounts - total_discount
+
+        if total_item_discounts > 0:
+            cart_content += f"\nTotal Item Discounts: -${total_item_discounts:.2f}"
+        if total_discount > 0:
+            cart_content += f"\nOrder Size Discount (10%): -${total_discount:.2f}"
+        cart_content += f"\nFinal Total: ${final_total:.2f}"
+        return cart_content
+
+    def get_total(self):
+        subtotal = sum(self.prices[item] * quantity for item, quantity in self.items.items())
+        total_item_discounts = sum(self.calculate_item_discount(item, quantity) 
+                                 for item, quantity in self.items.items())
+        total_discount = self.calculate_total_discount(subtotal)
+        return subtotal - total_item_discounts - total_discount
+
+class ShoppingCartGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Online Store Shopping Cart")
+        self.cart = ShoppingCart()
+        
+        # Create main frames
+        self.create_product_frame()
+        self.create_cart_frame()
+        
+    def create_product_frame(self):
+        # Product List Frame
+        product_frame = ttk.LabelFrame(self.root, text="Available Products", padding="10")
+        product_frame.grid(row=0, column=0, padx=10, pady=5, sticky="nsew")
+        
+        # Product List
+        row = 0
+        for item, price in self.cart.prices.items():
+            ttk.Label(product_frame, text=f"{item.title()}").grid(row=row, column=0, padx=5, pady=2)
+            ttk.Label(product_frame, text=f"${price:.2f}").grid(row=row, column=1, padx=5, pady=2)
+            row += 1
+            
+        # Add Item Frame
+        add_frame = ttk.LabelFrame(self.root, text="Add to Cart", padding="10")
+        add_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        
+        # Add Item Controls
+        self.item_var = tk.StringVar()
+        self.quantity_var = tk.StringVar(value="1")
+        
+        ttk.Label(add_frame, text="Select Item:").grid(row=0, column=0, padx=5, pady=2)
+        item_combo = ttk.Combobox(add_frame, textvariable=self.item_var, values=list(self.cart.prices.keys()))
+        item_combo.grid(row=0, column=1, padx=5, pady=2)
+        
+        ttk.Label(add_frame, text="Quantity:").grid(row=1, column=0, padx=5, pady=2)
+        quantity_entry = ttk.Entry(add_frame, textvariable=self.quantity_var, width=10)
+        quantity_entry.grid(row=1, column=1, padx=5, pady=2)
+        
+        ttk.Button(add_frame, text="Add to Cart", command=self.add_to_cart).grid(row=2, column=0, columnspan=2, pady=10)
+        
+    def create_cart_frame(self):
+        # Cart Frame
+        cart_frame = ttk.LabelFrame(self.root, text="Shopping Cart", padding="10")
+        cart_frame.grid(row=0, column=1, rowspan=2, padx=10, pady=5, sticky="nsew")
+        
+        # Cart Display
+        self.cart_text = tk.Text(cart_frame, width=40, height=20)
+        self.cart_text.grid(row=0, column=0, padx=5, pady=5)
+        
+        # Buttons Frame
+        button_frame = ttk.Frame(cart_frame)
+        button_frame.grid(row=1, column=0, pady=5)
+        
+        ttk.Button(button_frame, text="Remove Selected", command=self.remove_selected).grid(row=0, column=0, padx=5)
+        ttk.Button(button_frame, text="Checkout", command=self.checkout).grid(row=0, column=1, padx=5)
+        
+        # Update cart display
+        self.update_cart_display()
+        
+    def add_to_cart(self):
+        try:
+            item = self.item_var.get().lower()
+            quantity = int(self.quantity_var.get())
+            if quantity <= 0:
+                raise ValueError("Quantity must be positive")
+            
+            result = self.cart.add_item(item, quantity)
+            self.update_cart_display()
+            messagebox.showinfo("Success", result)
+        except ValueError as e:
+            messagebox.showerror("Error", "Please enter a valid quantity")
+            
+    def remove_selected(self):
+        try:
+            # Get selected text from cart display
+            selection = self.cart_text.tag_ranges(tk.SEL)
+            if selection:
+                selected_text = self.cart_text.get(selection[0], selection[1])
+                item = selected_text.split(":")[0].lower().strip()
+                
+                if item in self.cart.items:
+                    result = self.cart.remove_item(item, 1)
+                    self.update_cart_display()
+                    messagebox.showinfo("Success", result)
+                else:
+                    messagebox.showerror("Error", "Please select a valid item to remove")
+            else:
+                messagebox.showinfo("Info", "Please select an item to remove")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+            
+    def update_cart_display(self):
+        self.cart_text.delete(1.0, tk.END)
+        cart_content = self.cart.view_cart()
+        self.cart_text.insert(tk.END, cart_content)
+        
+    def checkout(self):
+        if not self.cart.items:
+            messagebox.showinfo("Info", "Your cart is empty!")
+            return
+            
+        cart_content = self.cart.view_cart()
+        messagebox.showinfo("Checkout", f"{cart_content}\n\nThank you for shopping with us!")
+        self.root.quit()
+
+def main():
+    root = tk.Tk()
+    app = ShoppingCartGUI(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
